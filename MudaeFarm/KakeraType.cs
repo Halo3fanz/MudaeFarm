@@ -9,6 +9,7 @@ namespace MudaeFarm
         Yellow,
         Orange,
         Red,
-        Rainbow
+        Rainbow,
+        Light
     }
 }

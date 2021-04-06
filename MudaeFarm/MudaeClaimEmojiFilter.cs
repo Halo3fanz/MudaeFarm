@@ -66,7 +66,8 @@ namespace MudaeFarm
             { "kakeray", KakeraType.Yellow },
             { "kakerao", KakeraType.Orange },
             { "kakerar", KakeraType.Red },
-            { "kakeraw", KakeraType.Rainbow }
+            { "kakeraw", KakeraType.Rainbow },
+            { "kakeral", KakeraType.Light }
         };
 
         public bool IsKakeraEmoji(IEmoji emoji, out KakeraType kakera) => emoji is ICustomEmoji & _kakeraMap.TryGetValue(emoji.Name, out kakera);
