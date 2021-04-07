@@ -183,8 +183,11 @@ namespace MudaeFarm
         {
             var options = _options.CurrentValue;
 
+            _logger.LogWarning($"HandleReaction Added");
+
             if (_claimEmojiFilter.IsClaimEmoji(e.Emoji) && _pendingClaims.TryRemove(e.Message.Id, out var claim))
             {
+                _logger.LogWarning($"Inside HandleReaction Added");
                 var (logPlace, channel, message, character, stopwatch) = claim;
 
                 await Task.Delay(TimeSpan.FromSeconds(options.DelaySeconds));
@@ -214,7 +217,12 @@ namespace MudaeFarm
                     return;
                 }
 
-                if (_outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _) && claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase))
+                bool tryParseClaim = _outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _);
+                bool claimerEquals = claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
+
+                _logger.LogWarning($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}'");
+
+                if (tryParseClaim && claimerEquals)
                 {
                     _logger.LogWarning($"Claimed character '{character}' in {logPlace} in {stopwatch.Elapsed.TotalMilliseconds}ms.");
 
@@ -306,7 +314,12 @@ namespace MudaeFarm
 
                 if (options.NotifyOnKakera)
                     _notification.SendToast($"Probably claimed {kakera} kakera in {logPlace}.");
+            } 
+            else
+            {
+                _logger.LogWarning("Unknown Reaction Added");
             }
+
         }
     }
 }

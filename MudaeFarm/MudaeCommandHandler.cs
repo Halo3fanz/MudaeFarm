@@ -64,6 +64,12 @@ namespace MudaeFarm
 
             var watch = Stopwatch.StartNew();
 
+            if (emoji == null)
+            {
+                _logger.LogWarning("Null emoji");
+            }
+            _logger.LogInformation($"Emoji:{emoji}");
+
             await message.AddReactionAsync(emoji);
 
             try
