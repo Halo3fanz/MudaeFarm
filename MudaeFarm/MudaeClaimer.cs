@@ -84,13 +84,21 @@ namespace MudaeFarm
             foreach (var id in _pendingClaims.Keys)
             {
                 if (_pendingClaims.TryGetValue(id, out var claim) && claim.CreatedTime.AddMinutes(1) < DateTime.Now)
+                {
+                    var characterToBeRemoved = claim.Character;
+                    _logger.LogWarning($"Removing char claim: {characterToBeRemoved.Name}");
                     _pendingClaims.TryRemove(id, out _);
+                }
             }
 
             foreach (var id in _pendingKakeraClaims.Keys)
             {
-                if (_pendingKakeraClaims.TryGetValue(id, out var claim) && claim.CreatedTime.AddMinutes(1) < DateTime.Now)
+                if (_pendingKakeraClaims.TryGetValue(id, out var claim) && claim.CreatedTime.AddMinutes(1) < DateTime.Now) 
+                {
+                    var kakeraToBeRemoved = claim.Character;
+                    _logger.LogWarning($"Removing kakera claim: {kakeraToBeRemoved.Name}");
                     _pendingKakeraClaims.TryRemove(id, out _);
+                }
             }
 
             var options = _options.CurrentValue;
@@ -218,6 +226,7 @@ namespace MudaeFarm
                 }
 
                 bool tryParseClaim = _outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _);
+                _logger.LogWarning(response.Content);
                 bool claimerEquals = claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
 
                 _logger.LogWarning($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}'");
@@ -315,11 +324,6 @@ namespace MudaeFarm
                 if (options.NotifyOnKakera)
                     _notification.SendToast($"Probably claimed {kakera} kakera in {logPlace}.");
             } 
-            else
-            {
-                _logger.LogWarning("Unknown Reaction Added");
-            }
-
         }
     }
 }

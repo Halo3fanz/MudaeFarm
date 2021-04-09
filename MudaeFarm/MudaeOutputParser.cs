@@ -47,8 +47,8 @@ namespace MudaeFarm
 
         public bool TryParseRollLimited(string s, out TimeSpan resetTime) => _rollLimitedRegex.IsMatch(s) & TryParseTime(s, out resetTime);
 
-        static readonly Regex _claimSucceededRegex = new Regex(@":[^:\s]*(?:::[^:\s]*)*:\s(?<claimer>.*)\s+and\s+(?<character>.*)\s+are\s+now\s.*married!", _regexOptions);
-
+        static readonly Regex _claimSucceededRegex = new Regex(@"\*\*(?<claimer>.*)\*\*\s+and\s+\*\*(?<character>.*)\*\*.*married", _regexOptions);
+ 
         public bool TryParseClaimSucceeded(string s, out string claimer, out string claimed)
         {
             var match = _claimSucceededRegex.Match(s);
