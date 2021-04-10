@@ -85,8 +85,6 @@ namespace MudaeFarm
             {
                 if (_pendingClaims.TryGetValue(id, out var claim) && claim.CreatedTime.AddMinutes(1) < DateTime.Now)
                 {
-                    var characterToBeRemoved = claim.Character;
-                    _logger.LogWarning($"Removing char claim: {characterToBeRemoved.Name}");
                     _pendingClaims.TryRemove(id, out _);
                 }
             }
@@ -95,8 +93,6 @@ namespace MudaeFarm
             {
                 if (_pendingKakeraClaims.TryGetValue(id, out var claim) && claim.CreatedTime.AddMinutes(1) < DateTime.Now) 
                 {
-                    var kakeraToBeRemoved = claim.Character;
-                    _logger.LogWarning($"Removing kakera claim: {kakeraToBeRemoved.Name}");
                     _pendingKakeraClaims.TryRemove(id, out _);
                 }
             }
@@ -151,6 +147,75 @@ namespace MudaeFarm
             _logger.LogWarning($"Attempting to claim character '{character}' in {logPlace}...");
 
             _pendingClaims[message.Id] = new PendingClaim(logPlace, channel, message, character, stopwatch);
+
+            /* Claim from message event instead of reaction event */
+
+            if (_pendingClaims.TryRemove(e.Message.Id, out var claim1))
+            {
+                var (logPlace1, channel1, message1, character1, stopwatch1) = claim1;
+
+                await Task.Delay(TimeSpan.FromSeconds(options.DelaySeconds));
+
+                var replySubs = new
+                {
+                    character = character1.DisplayName.Split(' ', 2)[0].ToLowerInvariant(),
+                    character_full = character1.DisplayName.ToLowerInvariant(),
+                    Character = character1.DisplayName.Split(' ', 2)[0],
+                    Character_full = character1.DisplayName,
+
+                    anime = character1.DisplayAnime.ToLowerInvariant(),
+                    Anime = character1.DisplayAnime
+                };
+
+                await _replySender.SendAsync(channel1, ReplyEvent.BeforeClaim, replySubs);
+
+                IUserMessage response;
+
+                try
+                {
+                    IEmoji emoji = new LocalEmoji("\uD83D\uDC96");
+
+                    response = await _commandHandler.ReactAsync(message1, emoji);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Could not claim character '{character1}' in {logPlace1}.");
+                    return;
+                }
+
+                bool tryParseClaim = _outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _);
+                _logger.LogWarning(response.Content);
+                bool claimerEquals = claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
+
+                _logger.LogWarning($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}'");
+
+                if (tryParseClaim && claimerEquals)
+                {
+                    _logger.LogWarning($"Claimed character '{character1}' in {logPlace1} in {stopwatch1.Elapsed.TotalMilliseconds}ms.");
+
+                    if (options.NotifyOnCharacter)
+                        _notification.SendToast($"Claimed character '{character1}' in {logPlace1}.");
+
+                    await _replySender.SendAsync(channel1, ReplyEvent.ClaimSucceeded, replySubs);
+
+                    return;
+                }
+
+                if (_outputParser.TryParseClaimFailed(response.Content, out var resetTime))
+                {
+                    _states.GetOrAdd(message1.ChannelId, new ClaimState()).CooldownResetTime = DateTime.Now + resetTime;
+
+                    _logger.LogWarning($"Could not claim character '{character1}' in {logPlace1} due to cooldown. Cooldown finishes in {resetTime}.");
+
+                    await _replySender.SendAsync(channel1, ReplyEvent.ClaimFailed, replySubs);
+                    return;
+                }
+
+                _logger.LogWarning($"Probably claimed character '{character1}' in {logPlace1}, but result could not be determined. Channel is probably busy.");
+
+                if (options.NotifyOnCharacter)
+                    _notification.SendToast($"Probably claimed character '{character1}' in {logPlace1}, but result could not be determined.");
+            }
         }
 
         readonly struct PendingClaim
@@ -193,73 +258,7 @@ namespace MudaeFarm
 
             _logger.LogWarning($"HandleReaction Added");
 
-            if (_claimEmojiFilter.IsClaimEmoji(e.Emoji) && _pendingClaims.TryRemove(e.Message.Id, out var claim))
-            {
-                _logger.LogWarning($"Inside HandleReaction Added");
-                var (logPlace, channel, message, character, stopwatch) = claim;
-
-                await Task.Delay(TimeSpan.FromSeconds(options.DelaySeconds));
-
-                var replySubs = new
-                {
-                    character      = character.DisplayName.Split(' ', 2)[0].ToLowerInvariant(),
-                    character_full = character.DisplayName.ToLowerInvariant(),
-                    Character      = character.DisplayName.Split(' ', 2)[0],
-                    Character_full = character.DisplayName,
-
-                    anime = character.DisplayAnime.ToLowerInvariant(),
-                    Anime = character.DisplayAnime
-                };
-
-                await _replySender.SendAsync(channel, ReplyEvent.BeforeClaim, replySubs);
-
-                IUserMessage response;
-
-                try
-                {
-                    response = await _commandHandler.ReactAsync(message, e.Emoji);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, $"Could not claim character '{character}' in {logPlace}.");
-                    return;
-                }
-
-                bool tryParseClaim = _outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _);
-                _logger.LogWarning(response.Content);
-                bool claimerEquals = claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
-
-                _logger.LogWarning($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}'");
-
-                if (tryParseClaim && claimerEquals)
-                {
-                    _logger.LogWarning($"Claimed character '{character}' in {logPlace} in {stopwatch.Elapsed.TotalMilliseconds}ms.");
-
-                    if (options.NotifyOnCharacter)
-                        _notification.SendToast($"Claimed character '{character}' in {logPlace}.");
-
-                    await _replySender.SendAsync(channel, ReplyEvent.ClaimSucceeded, replySubs);
-
-                    return;
-                }
-
-                if (_outputParser.TryParseClaimFailed(response.Content, out var resetTime))
-                {
-                    _states.GetOrAdd(message.ChannelId, new ClaimState()).CooldownResetTime = DateTime.Now + resetTime;
-
-                    _logger.LogWarning($"Could not claim character '{character}' in {logPlace} due to cooldown. Cooldown finishes in {resetTime}.");
-
-                    await _replySender.SendAsync(channel, ReplyEvent.ClaimFailed, replySubs);
-                    return;
-                }
-
-                _logger.LogWarning($"Probably claimed character '{character}' in {logPlace}, but result could not be determined. Channel is probably busy.");
-
-                if (options.NotifyOnCharacter)
-                    _notification.SendToast($"Probably claimed character '{character}' in {logPlace}, but result could not be determined.");
-            }
-
-            else if (_claimEmojiFilter.IsKakeraEmoji(e.Emoji, out var kakera) && _pendingKakeraClaims.TryRemove(e.Message.Id, out claim))
+           if (_claimEmojiFilter.IsKakeraEmoji(e.Emoji, out var kakera) && _pendingKakeraClaims.TryRemove(e.Message.Id, out var claim))
             {
                 var (logPlace, channel, message, character, stopwatch) = claim;
 
