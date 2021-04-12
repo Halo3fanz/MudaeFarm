@@ -24,6 +24,12 @@ namespace MudaeFarm
         public IConfigurationProvider Build(IConfigurationBuilder builder) => new DiscordConfigurationProvider();
     }
 
+    public static class DiscordNotificationChannel
+    {
+        public static IGuild guild;
+        public static IMessageChannel channel;
+    }
+
     public class DiscordConfigurationProvider : IConfigurationProvider
     {
         ICredentialManager _credentials;
@@ -98,6 +104,8 @@ namespace MudaeFarm
                 if (userId == _client.CurrentUser.Id && _credentials.SelectedProfile.Equals(profile, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogInformation($"Using configuration server '{guild.Name}' ({guild.Id}).");
+                    DiscordNotificationChannel.guild = guild;
+
                     return guild;
                 }
             }
@@ -130,6 +138,9 @@ namespace MudaeFarm
             await guild.CreateTextChannelAsync("bot-channels", c => c.Topic      = "Configure channels to enable MudaeFarm autorolling/claiming by sending the __channel ID__.");
             await guild.CreateTextChannelAsync("claim-replies", c => c.Topic     = "Configure automatic reply messages when you claim a character. One message is randomly selected. Refer to https://github.com/chiyadev/MudaeFarm for advanced templating.");
             await guild.CreateTextChannelAsync("wishlist-users", c => c.Topic    = "Configure wishlists of other users to be claimed by sending the __user ID__.");
+
+            DiscordNotificationChannel.guild = guild;
+            DiscordNotificationChannel.channel = await guild.CreateTextChannelAsync("claim-notifications", c => c.Topic = "Get notified of MudaeFarm claims here.");
 
             var notice = await information.SendMessageAsync(@"
 This is your MudaeFarm server where you can configure the bot.
@@ -334,6 +345,10 @@ Check <https://github.com/chiyadev/MudaeFarm> for detailed usage guidelines!
                         SetSection(UserWishlistList.Section, wishlists);
                         break;
 
+                    case "claim-notifications":
+                        // Send message claims
+                        DiscordNotificationChannel.channel = channel;
+                        break;
                     default:
                         valid = false;
                         break;

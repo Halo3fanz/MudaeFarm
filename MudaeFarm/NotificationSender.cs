@@ -2,8 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 //using Windows.UI.Notifications;
 using Microsoft.Extensions.Logging;
-using MailKit.Net.Smtp;
-using MimeKit;
 
 namespace MudaeFarm
 {
@@ -27,7 +25,7 @@ namespace MudaeFarm
             _linux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
         }
 
-        public void SendToast(string s)
+        public async void SendToast(string s)
         {
             // toast notifications are windows-specific
             if (_windows) 
@@ -48,6 +46,25 @@ namespace MudaeFarm
             }
             else if (_linux)
             {
+                var channel = DiscordNotificationChannel.channel;
+
+                if (channel == null)
+                {
+                    var guild = DiscordNotificationChannel.guild;
+                    if (guild == null)
+                    {
+                        _logger.LogWarning("Can't send notification because Guild is null");
+                        return;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Can't find channel claim-notifications, creating new channel...");
+                        DiscordNotificationChannel.channel = await guild.CreateTextChannelAsync("claim-notifications", c => c.Topic = "Get notified of MudaeFarm claims here.");
+                    }
+                }
+
+                await channel.SendMessageAsync(s);
+                
                 return;
             }
 
