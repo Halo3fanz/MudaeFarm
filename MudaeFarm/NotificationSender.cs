@@ -60,6 +60,7 @@ namespace MudaeFarm
                     {
                         _logger.LogWarning("Can't find channel claim-notifications, creating new channel...");
                         DiscordNotificationChannel.channel = await guild.CreateTextChannelAsync("claim-notifications", c => c.Topic = "Get notified of MudaeFarm claims here.");
+                        return;
                     }
                 }
 
