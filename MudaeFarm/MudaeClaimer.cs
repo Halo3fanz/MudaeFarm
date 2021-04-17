@@ -54,7 +54,13 @@ namespace MudaeFarm
                 return Task.CompletedTask;
             }
 
-            client.MessageReceived += HandleMessageReceived;
+            Task handleMessageReceived(MessageReceivedEventArgs args)
+            {
+                var _ = Task.Run(() => HandleMessageReceived(args), stoppingToken);
+                return Task.CompletedTask;
+            }
+
+            client.MessageReceived += handleMessageReceived;
             client.ReactionAdded   += handleReactionAdded;
 
             try
@@ -63,7 +69,7 @@ namespace MudaeFarm
             }
             finally
             {
-                client.MessageReceived -= HandleMessageReceived;
+                client.MessageReceived -= handleMessageReceived;
                 client.ReactionAdded   -= handleReactionAdded;
             }
         }
@@ -184,10 +190,10 @@ namespace MudaeFarm
                 }
 
                 bool tryParseClaim = _outputParser.TryParseClaimSucceeded(response.Content, out var claimer, out _);
-                _logger.LogWarning(response.Content);
+                _logger.LogDebug(response.Content);
                 bool claimerEquals = claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
 
-                _logger.LogWarning($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}'");
+                _logger.LogDebug($"TryParseClaim: '{tryParseClaim}'. ClaimerEquals: '{claimerEquals}', claimer:{claimer} and user {e.Client.CurrentUser.Name}");
 
                 if (tryParseClaim && claimerEquals)
                 {
@@ -216,6 +222,7 @@ namespace MudaeFarm
                 if (options.NotifyOnCharacter)
                     _notification.SendToast($"Probably claimed character '{character1}' in {logPlace1}, but result could not be determined.");
             }
+            
         }
 
         readonly struct PendingClaim
@@ -256,8 +263,6 @@ namespace MudaeFarm
         {
             var options = _options.CurrentValue;
 
-            _logger.LogWarning($"HandleReaction Added");
-
            if (_claimEmojiFilter.IsKakeraEmoji(e.Emoji, out var kakera) && _pendingKakeraClaims.TryRemove(e.Message.Id, out var claim))
             {
                 var (logPlace, channel, message, character, stopwatch) = claim;
@@ -297,13 +302,32 @@ namespace MudaeFarm
                     return;
                 }
 
-                if (_outputParser.TryParseKakeraSucceeded(response.Content, out var claimer, out _) && claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase))
+                bool parseKakeraSucceeded = _outputParser.TryParseKakeraSucceeded(response.Content, out var claimer, out _) && claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
+                _logger.LogDebug($"{response.Content}");
+                _logger.LogDebug($"parseKakeraSucceeded:{parseKakeraSucceeded}, claimer: {claimer} and user {e.Client.CurrentUser.Name}");
+
+                if (parseKakeraSucceeded)
                 {
                     _logger.LogWarning($"Claimed {kakera} kakera on character '{character}' in {logPlace} in {stopwatch.Elapsed.TotalMilliseconds}ms.");
 
                     if (options.NotifyOnKakera)
                         _notification.SendToast($"Claimed {kakera} kakera in {logPlace}.");
 
+                    await _replySender.SendAsync(channel, ReplyEvent.KakeraSucceeded, replySubs);
+                    return;
+                }
+
+                _logger.LogWarning($"{response.Content}");
+                bool parseKakeraLightSucceeded = _outputParser.TryParseKakeraLightSucceeded(response.Content, out var light_claimer, out var claimed) && light_claimer.Equals(e.Client.CurrentUser.Name, StringComparison.OrdinalIgnoreCase);
+
+                if (parseKakeraLightSucceeded)
+                {
+                    _logger.LogWarning($"Claimed {kakera} on '{character}' in {logPlace} in {stopwatch.Elapsed.TotalMilliseconds}ms.");
+
+                    if (options.NotifyOnKakera)
+                    {
+                        _notification.SendToast($"Claimed {kakera} kakera in {logPlace} for {claimed}");
+                    }
                     await _replySender.SendAsync(channel, ReplyEvent.KakeraSucceeded, replySubs);
                     return;
                 }

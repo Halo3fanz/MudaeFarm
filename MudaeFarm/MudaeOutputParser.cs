@@ -11,6 +11,7 @@ namespace MudaeFarm
         bool TryParseClaimSucceeded(string s, out string claimer, out string claimed);
         bool TryParseClaimFailed(string s, out TimeSpan resetTime);
         bool TryParseKakeraSucceeded(string s, out string claimer, out int claimed);
+        bool TryParseKakeraLightSucceeded(string s, out string claimer, out int claimed);
         bool TryParseKakeraFailed(string s, out TimeSpan resetTime);
     }
 
@@ -47,8 +48,8 @@ namespace MudaeFarm
 
         public bool TryParseRollLimited(string s, out TimeSpan resetTime) => _rollLimitedRegex.IsMatch(s) & TryParseTime(s, out resetTime);
 
-        static readonly Regex _claimSucceededRegex = new Regex(@"\*\*(?<claimer>.*)\*\*\s+and\s+\*\*(?<character>.*)\*\*.*married", _regexOptions);
- 
+        static readonly Regex _claimSucceededRegex = new Regex(@"\*\*(?<claimer>.*)\*\*\s+and\s+\*\*.(?<character>.*)\*\*.*married!", _regexOptions);
+
         public bool TryParseClaimSucceeded(string s, out string claimer, out string claimed)
         {
             var match = _claimSucceededRegex.Match(s);
@@ -63,7 +64,8 @@ namespace MudaeFarm
 
         public bool TryParseClaimFailed(string s, out TimeSpan resetTime) => _claimFailedRegex.IsMatch(s) & TryParseTime(s, out resetTime);
 
-        static readonly Regex _kakeraSucceededRegex = new Regex(@":kakera\w?:\s*\*\*(?<claimer>.*)\s+\+(?<claimed>\d+)", _regexOptions);
+        static readonly Regex _kakeraSucceededRegex = new Regex(@":kakera\w?:(?:.....................)(?:......\s*\*)?(?<claimer>.*)\s+\+(?<claimed>\d+)", _regexOptions);
+        static readonly Regex _kakeraLSucceededRegex = new Regex(@"=>\s\*\*(?<claimer>.*)\*\*", _regexOptions);
 
         public bool TryParseKakeraSucceeded(string s, out string claimer, out int claimed)
         {
@@ -75,7 +77,17 @@ namespace MudaeFarm
             return match.Success;
         }
 
-        static readonly Regex _kakeraFailedRegex = new Regex(@"can't\s+react\s+to\s+a\s+kakera", _regexOptions);
+        public bool TryParseKakeraLightSucceeded(string s, out string claimer, out int claimed)
+        {
+            var match = _kakeraLSucceededRegex.Match(s);
+
+            claimer = match.Groups["claimer"].Value;
+            int.TryParse(match.Groups["claimed"].Value, out claimed);
+
+            return match.Success;
+        }
+
+        static readonly Regex _kakeraFailedRegex = new Regex(@"can't\s+react\s+to\s+kakera", _regexOptions);
 
         public bool TryParseKakeraFailed(string s, out TimeSpan resetTime) => _kakeraFailedRegex.IsMatch(s) & TryParseTime(s, out resetTime);
     }

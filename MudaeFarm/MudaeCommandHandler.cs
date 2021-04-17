@@ -21,6 +21,11 @@ namespace MudaeFarm
         Task<IUserMessage> ReactAsync(IUserMessage message, IEmoji emoji, CancellationToken cancellationToken = default);
     }
 
+    public static class MudaeSemaphore
+    {
+        public static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    }
+
     public class MudaeCommandHandler : IMudaeCommandHandler
     {
         readonly IDiscordClientService _discord;
@@ -40,21 +45,30 @@ namespace MudaeFarm
 
             var watch = Stopwatch.StartNew();
 
-            await client.SendMessageAsync(channel.Id, command);
-
+            await MudaeSemaphore.semaphoreSlim.WaitAsync(cancellationToken);
             try
             {
-                var response = await ReceiveAsync(client, channel, cancellationToken);
+                await client.SendMessageAsync(channel.Id, command);
+                
+                try
+                {
+                    var response = await ReceiveAsync(client, channel, cancellationToken);
 
-                _logger.LogDebug($"Sent command '{command}' in channel '{channel.Name}' ({channel.Id}) and received Mudae response '{response.Content}' ({response.Embeds.Count} embeds) in {watch.Elapsed.TotalMilliseconds}ms.");
+                    _logger.LogDebug($"Sent command '{command}' in channel '{channel.Name}' ({channel.Id}) and received Mudae response '{response.Content}' ({response.Embeds.Count} embeds) in {watch.Elapsed.TotalMilliseconds}ms.");
 
-                return response;
-            }
-            catch (OperationCanceledException)
+                    return response;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning($"Sent command '{command}' in channel '{channel.Name}' ({channel.Id}) but did not receive expected Mudae response.");
+                    throw;
+                }
+            } 
+            finally
             {
-                _logger.LogWarning($"Sent command '{command}' in channel '{channel.Name}' ({channel.Id}) but did not receive expected Mudae response.");
-                throw;
+                MudaeSemaphore.semaphoreSlim.Release();
             }
+
         }
 
         public async Task<IUserMessage> ReactAsync(IUserMessage message, IEmoji emoji, CancellationToken cancellationToken = default)
@@ -64,27 +78,31 @@ namespace MudaeFarm
 
             var watch = Stopwatch.StartNew();
 
-            if (emoji == null)
-            {
-                _logger.LogWarning("Null emoji");
-            }
-            _logger.LogInformation($"Emoji:{emoji}");
-
-            await message.AddReactionAsync(emoji);
+            await MudaeSemaphore.semaphoreSlim.WaitAsync(cancellationToken);
 
             try
             {
-                var response = await ReceiveAsync(client, channel, cancellationToken);
+                await message.AddReactionAsync(emoji);
 
-                _logger.LogDebug($"Attached reaction '{emoji}' to message {message.Id} in channel '{channel.Name}' ({channel.Id}) and received Mudae response '{response.Content}' ({response.Embeds.Count} embeds) in {watch.Elapsed.TotalMilliseconds}ms.");
+                try
+                {
+                    var response = await ReceiveAsync(client, channel, cancellationToken);
 
-                return response;
+                    _logger.LogDebug($"Attached reaction '{emoji}' to message {message.Id} in channel '{channel.Name}' ({channel.Id}) and received Mudae response '{response.Content}' ({response.Embeds.Count} embeds) in {watch.Elapsed.TotalMilliseconds}ms.");
+
+                    return response;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning($"Attached reaction '{emoji}' to message {message.Id} in channel '{channel.Name}' ({channel.Id}) but did not receive expected Mudae response.");
+                    throw;
+                }
             }
-            catch (OperationCanceledException)
+            finally
             {
-                _logger.LogWarning($"Attached reaction '{emoji}' to message {message.Id} in channel '{channel.Name}' ({channel.Id}) but did not receive expected Mudae response.");
-                throw;
+                MudaeSemaphore.semaphoreSlim.Release();
             }
+
         }
 
         async Task<IUserMessage> ReceiveAsync(DiscordClient client, IChannel channel, CancellationToken cancellationToken = default)
@@ -93,20 +111,36 @@ namespace MudaeFarm
 
             Task handleMessage(MessageReceivedEventArgs e)
             {
+                bool isUserMessage = e.Message is IUserMessage;
+                bool channelid = e.Message is IUserMessage message1 && message1.ChannelId == channel.Id;
+                bool isMudae = e.Message is IUserMessage message2 && message2.ChannelId == channel.Id && _userFilter.IsMudae(message2.Author);
+                
                 if (e.Message is IUserMessage message && message.ChannelId == channel.Id && _userFilter.IsMudae(message.Author))
                     response.TrySetResult(message);
 
                 return Task.CompletedTask;
+
             }
 
             client.MessageReceived += handleMessage;
 
             try
             {
-                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("Cancellation token already cancelled!");
+                    cancellationToken = default;
+                }
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
                 using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
 
                 cancellationToken = linkedCts.Token;
+
+                if (response.Task.IsCanceled)
+                {
+                    _logger.LogWarning("Task already cancelled!");
+                }
 
                 await using (cancellationToken.Register(() => response.TrySetCanceled(cancellationToken)))
                     return await response.Task;
