@@ -120,7 +120,7 @@ namespace MudaeFarm
             var character   = new CharacterInfo(embed.Author.Name, description[0]);
 
             // ignore $im messages
-            if (!options.BypassImCheck && description.Any(l => l.StartsWith("claims:", StringComparison.OrdinalIgnoreCase) || l.StartsWith("likes:", StringComparison.OrdinalIgnoreCase)))
+            if (!options.BypassImCheck && description.Any(l => l.StartsWith("claim rank:", StringComparison.OrdinalIgnoreCase) || l.StartsWith("like rank:", StringComparison.OrdinalIgnoreCase)))
                 return;
 
             _logger.LogDebug($"Detected character '{character}' in {logPlace}.");
