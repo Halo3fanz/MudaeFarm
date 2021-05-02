@@ -65,7 +65,7 @@ namespace MudaeFarm
         public bool TryParseClaimFailed(string s, out TimeSpan resetTime) => _claimFailedRegex.IsMatch(s) & TryParseTime(s, out resetTime);
 
         static readonly Regex _kakeraSucceededRegex = new Regex(@":kakera\w?:(?:.....................)(?:......\s*\*)?(?<claimer>.*)\s+\+(?<claimed>\d+)", _regexOptions);
-        static readonly Regex _kakeraLSucceededRegex = new Regex(@"=>\s\*\*(?<claimer>.*)\*\*", _regexOptions);
+        static readonly Regex _kakeraLSucceededRegex = new Regex(@"=>\s\*\*(?<claimer>.*)\s\+", _regexOptions);
 
         public bool TryParseKakeraSucceeded(string s, out string claimer, out int claimed)
         {
