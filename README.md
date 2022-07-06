@@ -154,7 +154,7 @@ It is possible to add your own ID in this channel. This effectively allows Mudae
 
 ### Configuration profiles
 
-MudaeFarm supports "profiles" that can be used for authenticating as a different user or to add multiple isolated configuration servers. This is useful for having different configurations for certain servers. Profiles are located at `%localappdata%\MudaeFarm\profiles.json`.
+MudaeFarm supports "profiles" that can be used for authenticating as a different user or to add multiple isolated configuration servers. This is useful for having different configurations for certain servers. Profiles are located at `%localappdata%\MudaeFarm\profiles.json` in Windows and `.local\share\MudaeFarm\profiles.json` in Raspbian.
 
 You can configure profiles for two different accounts.
 
