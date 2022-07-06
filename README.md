@@ -19,7 +19,7 @@ This is a ~~simple~~ bot that automatically rolls and claims Mudae waifus/husban
 
 You can bypass the "Windows protected your PC" popup by clicking "More info". Alternatively, you may build this project yourself using the .NET Core SDK.
 
-3. Enter your user token. [How?](https://github.com/chiyadev/MudaeFarm/blob/master/User%20tokens.md)
+3. Enter your user token. [How?](https://www.androidauthority.com/get-discord-token-3149920/)
 
 ## Initialization
 
