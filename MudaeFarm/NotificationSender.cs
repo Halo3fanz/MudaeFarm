@@ -44,30 +44,29 @@ namespace MudaeFarm
                     _logger.LogWarning(e, "Could not send Windows toast notification.");
                 }            
             }
-            else if (_linux)
+
+            var channel = DiscordNotificationChannel.channel;
+
+            if (channel == null)
             {
-                var channel = DiscordNotificationChannel.channel;
-
-                if (channel == null)
+                var guild = DiscordNotificationChannel.guild;
+                if (guild == null)
                 {
-                    var guild = DiscordNotificationChannel.guild;
-                    if (guild == null)
-                    {
-                        _logger.LogWarning("Can't send notification because Guild is null");
-                        return;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Can't find channel claim-notifications, creating new channel...");
-                        DiscordNotificationChannel.channel = await guild.CreateTextChannelAsync("claim-notifications", c => c.Topic = "Get notified of MudaeFarm claims here.");
-                        return;
-                    }
+                    _logger.LogWarning("Can't send notification because Guild is null");
+                    return;
                 }
-
-                await channel.SendMessageAsync(s);
-                
-                return;
+                else
+                {
+                    _logger.LogWarning("Can't find channel claim-notifications, creating new channel...");
+                    DiscordNotificationChannel.channel = await guild.CreateTextChannelAsync("claim-notifications", c => c.Topic = "Get notified of MudaeFarm claims here.");
+                    return;
+                }
             }
+
+            await channel.SendMessageAsync(s);
+                
+            return;
+
 
         }
     }

@@ -54,7 +54,7 @@ namespace MudaeFarm
 
             try
             {
-                release = await _github.Repository.Release.GetLatest("chiyadev", "MudaeFarm");
+                release = await _github.Repository.Release.GetLatest("Halo3fanz", "MudaeFarm");
 
                 if (!Version.TryParse(release.Name.TrimStart('v'), out version))
                     return;

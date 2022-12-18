@@ -6,12 +6,12 @@
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <PublishTrimmed>true</PublishTrimmed>
         <LangVersion>8</LangVersion>
-        <Version>4.0.6</Version>
+        <Version>5.0.0</Version>
         <Title>MudaeFarm</Title>
         <Authors>chiya.dev</Authors>
         <Copyright>Copyright (C) chiya.dev 2018-2020</Copyright>
-        <PackageProjectUrl>https://github.com/chiyadev/MudaeFarm</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/chiyadev/MudaeFarm</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/Halo3fanz/MudaeFarm</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Halo3fanz/MudaeFarm</RepositoryUrl>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     </PropertyGroup>
 
