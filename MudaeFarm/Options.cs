@@ -16,7 +16,7 @@ namespace MudaeFarm
         public double ReplyTypingCpm { get; set; } = 190;
 
         [JsonProperty("auto_update")]
-        public bool AutoUpdate { get; set; } = true;
+        public bool AutoUpdate { get; set; } = false;
     }
 
     public class ClaimingOptions
