@@ -19,7 +19,7 @@ This is a ~~simple~~ bot that automatically rolls and claims Mudae waifus/husban
 
 You can bypass the "Windows protected your PC" popup by clicking "More info". Alternatively, you may build this project yourself using the .NET Core SDK.
 
-3. Enter your user token. [How?](https://github.com/chiyadev/MudaeFarm/blob/master/User%20tokens.md)
+3. Enter your user token. [How?](https://www.androidauthority.com/get-discord-token-3149920/)
 
 ## Initialization
 
@@ -154,7 +154,7 @@ It is possible to add your own ID in this channel. This effectively allows Mudae
 
 ### Configuration profiles
 
-MudaeFarm supports "profiles" that can be used for authenticating as a different user or to add multiple isolated configuration servers. This is useful for having different configurations for certain servers. Profiles are located at `%localappdata%\MudaeFarm\profiles.json`.
+MudaeFarm supports "profiles" that can be used for authenticating as a different user or to add multiple isolated configuration servers. This is useful for having different configurations for certain servers. Profiles are located at `%localappdata%\MudaeFarm\profiles.json` in Windows and `.local\share\MudaeFarm\profiles.json` in Raspbian.
 
 You can configure profiles for two different accounts.
 
